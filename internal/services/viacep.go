@@ -18,8 +18,12 @@ type cepService struct {
 
 func (s cepService) GetCep(zipcode string) (string, error) {
 
+	ctx, cancel := context.WithCancel(s.ctx)
+	defer cancel()
+
 	var cepForCdn string = zipcode[:5] + "-" + zipcode[5:]
 	var city string
+
 	cdnUrl := fmt.Sprintf("https://cdn.apicep.com/file/apicep/%s.json", cepForCdn)
 	viaCepUrl := fmt.Sprintf("http://viacep.com.br/ws/%s/json/", strings.Replace(zipcode, "-", "", 1))
 
@@ -29,35 +33,47 @@ func (s cepService) GetCep(zipcode string) (string, error) {
 	defer close(resultCdn)
 
 	go func() {
-		defer utils.PanicRecovery()
-		response, _ := utils.RequestWithContext(s.ctx, cdnUrl)
-		resultCdn <- response
+		response, _ := utils.RequestWithContext(ctx, cdnUrl)
+		if ctx.Err() == nil {
+			resultCdn <- response
+		}
 	}()
 
 	go func() {
-		defer utils.PanicRecovery()
-		response, _ := utils.RequestWithContext(s.ctx, viaCepUrl)
-		resultViaCep <- response
+		response, _ := utils.RequestWithContext(ctx, viaCepUrl)
+		if ctx.Err() == nil {
+			resultViaCep <- response
+		}
 	}()
 
-	select {
-	case result := <-resultCdn:
-		fmt.Println("Response from cdn")
-		response := struct {
-			City string `json:"city"`
-		}{}
-		json.Unmarshal(result, &response)
-		city = response.City
-	case result := <-resultViaCep:
-		fmt.Println("Response from viacep")
-		response := struct {
-			Localidade string `json:"localidade"`
-		}{}
-		json.Unmarshal(result, &response)
-		city = response.Localidade
-	case <-s.ctx.Done():
-		fmt.Println("Timeout on request")
-		fmt.Println(s.ctx.Err())
+	for i := 0; i < 2; i++ {
+		if ctx.Err() != nil {
+			break
+		}
+
+		select {
+		case result := <-resultCdn:
+			fmt.Println("Response from cdn")
+			response := struct {
+				City string `json:"city"`
+			}{}
+			json.Unmarshal(result, &response)
+			city = response.City
+		case result := <-resultViaCep:
+			fmt.Println("Response from viacep")
+			response := struct {
+				City string `json:"localidade"`
+			}{}
+			json.Unmarshal(result, &response)
+			city = response.City
+		case <-ctx.Done():
+			fmt.Println("Timeout on request")
+			fmt.Println(ctx.Err())
+		}
+
+		if city != "" {
+			cancel()
+		}
 	}
 
 	if city == "" {
