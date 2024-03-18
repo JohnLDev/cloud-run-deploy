@@ -2,8 +2,10 @@ package utils
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
+	"slices"
 )
 
 func RequestWithContext(ctx context.Context, url string) ([]byte, error) {
@@ -21,6 +23,10 @@ func RequestWithContext(ctx context.Context, url string) ([]byte, error) {
 	response, err := io.ReadAll(result.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if !slices.Contains([]int{http.StatusOK, http.StatusAccepted, http.StatusCreated}, result.StatusCode) {
+		return nil, errors.New(string(response))
 	}
 
 	return response, nil

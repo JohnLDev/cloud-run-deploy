@@ -17,30 +17,31 @@ type cepService struct {
 }
 
 func (s cepService) GetCep(zipcode string) (string, error) {
-
 	ctx, cancel := context.WithCancel(s.ctx)
 	defer cancel()
 
-	var cepForCdn string = zipcode[:5] + "-" + zipcode[5:]
 	var city string
 
-	cdnUrl := fmt.Sprintf("https://cdn.apicep.com/file/apicep/%s.json", cepForCdn)
-	viaCepUrl := fmt.Sprintf("http://viacep.com.br/ws/%s/json/", strings.Replace(zipcode, "-", "", 1))
-
-	resultViaCep := make(chan []byte)
 	resultCdn := make(chan []byte)
-	defer close(resultViaCep)
 	defer close(resultCdn)
 
 	go func() {
+		var cepForCdn string = zipcode[:5] + "-" + zipcode[5:]
+		cdnUrl := fmt.Sprintf("https://cdn.apicep.com/file/apicep/%s.json", cepForCdn)
 		response, _ := utils.RequestWithContext(ctx, cdnUrl)
+		// fmt.Println(string(response))
 		if ctx.Err() == nil {
 			resultCdn <- response
 		}
 	}()
 
+	resultViaCep := make(chan []byte)
+	defer close(resultViaCep)
+
 	go func() {
+		viaCepUrl := fmt.Sprintf("http://viacep.com.br/ws/%s/json/", strings.Replace(zipcode, "-", "", 1))
 		response, _ := utils.RequestWithContext(ctx, viaCepUrl)
+		// fmt.Println(string(response))
 		if ctx.Err() == nil {
 			resultViaCep <- response
 		}

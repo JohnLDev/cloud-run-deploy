@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/johnldev/4-deploy-cloud-run/internal/utils"
 )
@@ -35,11 +36,14 @@ func (s WeatherService) GetTemperatureByCity(city string) (*ITemperatureResponse
 	}
 
 	result := ITemperatureResponse{}
+	cityInput := utils.NormalizeAccents(strings.ToLower(strings.ReplaceAll(city, " ", "-")))
 
-	response, err := utils.RequestWithContext(s.Ctx, fmt.Sprintf("%s?q=%s&key=%s", weatherApiUrl, city, token))
+	response, err := utils.RequestWithContext(s.Ctx, fmt.Sprintf("%s?q=%s&key=%s", weatherApiUrl, cityInput, token))
 	if err != nil {
 		return nil, err
 	}
+
+	//todo validate error
 
 	json.Unmarshal(response, &result)
 	return &result, nil
