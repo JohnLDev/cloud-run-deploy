@@ -26,10 +26,10 @@ func (s cepService) GetCep(zipcode string) (string, error) {
 	defer close(resultCdn)
 
 	go func() {
+		defer utils.PanicRecovery()
 		var cepForCdn string = zipcode[:5] + "-" + zipcode[5:]
 		cdnUrl := fmt.Sprintf("https://cdn.apicep.com/file/apicep/%s.json", cepForCdn)
 		response, _ := utils.RequestWithContext(ctx, cdnUrl)
-		// fmt.Println(string(response))
 		if ctx.Err() == nil {
 			resultCdn <- response
 		}
@@ -39,9 +39,9 @@ func (s cepService) GetCep(zipcode string) (string, error) {
 	defer close(resultViaCep)
 
 	go func() {
+		defer utils.PanicRecovery()
 		viaCepUrl := fmt.Sprintf("http://viacep.com.br/ws/%s/json/", strings.Replace(zipcode, "-", "", 1))
 		response, _ := utils.RequestWithContext(ctx, viaCepUrl)
-		// fmt.Println(string(response))
 		if ctx.Err() == nil {
 			resultViaCep <- response
 		}

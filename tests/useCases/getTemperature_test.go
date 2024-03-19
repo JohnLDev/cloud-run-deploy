@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
@@ -97,7 +98,7 @@ func (s *TemperatureSuite) TestGetTemperatureUseCase_Success() {
 	httpmock.RegisterResponder("GET", fmt.Sprintf("https://cdn.apicep.com/file/apicep/%s.json", cepForCdn),
 		httpmock.NewStringResponder(200, fmt.Sprintf(`{"city":"%s"}`, city)))
 
-	httpmock.RegisterResponder("GET", fmt.Sprintf("http://api.weatherapi.com/v1/current.json?q=%s&key=%s", city, WEATHER_API_TOKEN),
+	httpmock.RegisterResponder("GET", fmt.Sprintf("http://api.weatherapi.com/v1/current.json?q=%s&key=%s", strings.ToLower(strings.ReplaceAll(city, " ", "-")), WEATHER_API_TOKEN),
 		httpmock.NewStringResponder(200, `{"current": {
 			"temp_c": 20,
 			"temp_f": 68
