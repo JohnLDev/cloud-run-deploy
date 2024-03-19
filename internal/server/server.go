@@ -31,10 +31,7 @@ func StartServer() {
 		validate := validator.New(validator.WithRequiredStructEnabled())
 		input := Input{}
 		// Decode the request body into the input struct
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-			return
-		}
+		json.NewDecoder(r.Body).Decode(&input)
 
 		validateErr := validate.Struct(input)
 		if validateErr != nil {
